@@ -44,7 +44,7 @@ function getPool(): Pool {
  */
 export async function query<T>(sql: string, params?: unknown[]): Promise<T> {
   const db = getPool();
-  const [results] = await db.execute(sql, params);
+  const [results] = await db.execute(sql, params as (string | number | null | Buffer)[]);
   return results as T;
 }
 
@@ -59,8 +59,8 @@ export async function queryWithCount<T>(
   countParams?: unknown[]
 ): Promise<{ data: T; total: number }> {
   const db = getPool();
-  const [results] = await db.execute(sql, params);
-  const [countResult] = await db.execute(countSql, countParams);
+  const [results] = await db.execute(sql, params as (string | number | null | Buffer)[]);
+  const [countResult] = await db.execute(countSql, countParams as (string | number | null | Buffer)[]);
   const total = (countResult as Array<{ total: number }>)[0]?.total ?? 0;
   return { data: results as T, total };
 }
