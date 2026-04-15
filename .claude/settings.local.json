@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:/Users/hugos/OneDrive/Escritorio/b_pYrRET7MR0n/.env\"*)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=2\")",
+      "Bash(curl -s \"http://localhost:3000\")",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=2&filter[titulo]=BALLOT\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d['pagination'],indent=2\\)\\); print\\(d['data'][0]['titulo'] if d['data'] else 'no data'\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=2&filter%5Btitulo%5D=BALLOT\")",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=1&filter%5Btitulo%5D=BALLOT\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); const chains=JSON.parse\\(j.data[0].copyright_chains\\); console.log\\(JSON.stringify\\(chains,null,2\\)\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=5\")",
+      "Bash(node -e \"const j=JSON.parse\\(require\\('fs'\\).readFileSync\\('/tmp/obras.json','utf8'\\)\\); j.data.forEach\\(d => { const c=JSON.parse\\(d.copyright_chains\\); console.log\\('--- '+d.concord_code+' ---'\\); console.log\\(JSON.stringify\\(c,null,2\\).substring\\(0,500\\)\\); }\\)\")",
+      "Bash(mkdir -p C:/Users/hugos/tmp)",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=3\")",
+      "Bash(node -e \"const j=JSON.parse\\(require\\('fs'\\).readFileSync\\('C:/Users/hugos/tmp/obras.json','utf8'\\)\\); j.data.forEach\\(d => { const c=JSON.parse\\(d.copyright_chains\\); console.log\\('=== '+d.concord_code+' / '+d.titulo+' ==='\\); console.log\\(JSON.stringify\\(c,null,2\\)\\); console.log\\(\\); }\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/obras?limit=1\")",
+      "Bash(node -e \"process.stdin.setEncoding\\('utf8'\\); let d=''; process.stdin.on\\('data',c=>d+=c\\); process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\); console.log\\('Success:', j.success\\); console.log\\('Columns:', Object.keys\\(j.data[0]\\).join\\(', '\\)\\); console.log\\('Total:', j.pagination.total\\)}\\)\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{redirect_url}\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/login)"
+    ]
+  }
+}
