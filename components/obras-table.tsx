@@ -82,9 +82,9 @@ const COLUMN_CONFIG: Record<string, string> = {
   concord_code: 'Concord Code',
   copyright_chains: 'Copyright',
   titulo: 'Title',
+  total_autores: 'Composers/Authors',
   iswc: 'ISWC',
   interpretes: 'Performers',
-  total_autores: 'Writers',
   total_editores: 'Publishers',
   archivo_cwr: 'CWR File',
 };
