@@ -1,7 +1,9 @@
+import Link from 'next/link';
 import { ObrasTable } from '@/components/obras-table';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LogoutButton } from '@/components/logout-button';
-import { Music } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Music, Palette } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -20,6 +22,16 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/design-system">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Design system"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Palette className="h-4 w-4" />
+              </Button>
+            </Link>
             <ThemeToggle />
             <LogoutButton />
           </div>
