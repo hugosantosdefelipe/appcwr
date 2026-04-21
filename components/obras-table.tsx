@@ -31,6 +31,13 @@ import { useDragScroll } from '@/hooks/use-drag-scroll';
 import { Input } from '@/components/ui/input';
 import { CopyrightChainsModal } from '@/components/copyright-chains-modal';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -91,12 +98,31 @@ const COLUMN_CONFIG: Record<string, string> = {
 
 const COLUMN_ORDER = Object.keys(COLUMN_CONFIG);
 
+// Reasonable widths per column (min..max). Cells truncate with ellipsis; double-click to expand.
+const COLUMN_WIDTHS: Record<string, string> = {
+  concord_code: 'min-w-[130px] max-w-[150px]',
+  copyright_chains: 'min-w-[90px] max-w-[110px]',
+  titulo: 'min-w-[220px] max-w-[320px]',
+  total_autores: 'min-w-[200px] max-w-[280px]',
+  iswc: 'min-w-[140px] max-w-[170px]',
+  interpretes: 'min-w-[180px] max-w-[240px]',
+  total_editores: 'min-w-[200px] max-w-[280px]',
+  archivo_cwr: 'min-w-[160px] max-w-[220px]',
+};
+
 export function ObrasTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedCell, setExpandedCell] = useState<{
+    column: string;
+    value: unknown;
+    label: string;
+    concordCode: string;
+    title: string;
+  } | null>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 400);
   const debouncedFilters = useDebounce(columnFilters, 400);
@@ -373,6 +399,8 @@ export function ObrasTable() {
                         <TableHead
                           key={column}
                           className={`text-xs font-semibold uppercase tracking-wider whitespace-nowrap h-10 ${
+                            COLUMN_WIDTHS[column] || ''
+                          } ${
                             column === 'concord_code'
                               ? 'sticky left-0 z-10 bg-muted/95 backdrop-blur-sm'
                               : ''
@@ -387,7 +415,7 @@ export function ObrasTable() {
                         {sortedColumns.map((column) => (
                           <TableHead
                             key={`filter-${column}`}
-                            className={`py-1.5 px-2 ${
+                            className={`py-1.5 px-2 ${COLUMN_WIDTHS[column] || ''} ${
                               column === 'concord_code'
                                 ? 'sticky left-0 z-10 bg-muted/95 backdrop-blur-sm'
                                 : ''
@@ -417,28 +445,48 @@ export function ObrasTable() {
                           index % 2 === 0 ? 'bg-background' : 'bg-muted/15'
                         } hover:bg-accent/50`}
                       >
-                        {sortedColumns.map((column) => (
-                          <TableCell
-                            key={column}
-                            className={`whitespace-nowrap text-sm ${
-                              column === 'concord_code'
-                                ? 'font-mono font-semibold text-primary sticky left-0 z-10 bg-inherit'
-                                : ''
-                            } ${column === 'iswc' ? 'font-mono text-muted-foreground' : ''} ${
-                              column === 'archivo_cwr' ? 'font-mono text-xs text-muted-foreground' : ''
-                            }`}
-                          >
-                            {column === 'copyright_chains' ? (
-                              <CopyrightChainsModal
-                                data={obra[column]}
-                                concordCode={String(obra.concord_code || '')}
-                                title={String(obra.titulo || '')}
-                              />
-                            ) : (
-                              formatCellValue(obra[column])
-                            )}
-                          </TableCell>
-                        ))}
+                        {sortedColumns.map((column) => {
+                          const isChains = column === 'copyright_chains';
+                          const cellValue = obra[column];
+                          const rawText = formatCellValue(cellValue);
+                          return (
+                            <TableCell
+                              key={column}
+                              onDoubleClick={
+                                isChains
+                                  ? undefined
+                                  : () =>
+                                      setExpandedCell({
+                                        column,
+                                        value: cellValue,
+                                        label: getColumnLabel(column),
+                                        concordCode: String(obra.concord_code || ''),
+                                        title: String(obra.titulo || ''),
+                                      })
+                              }
+                              title={isChains ? undefined : `${rawText}\n\n(doble-click para expandir)`}
+                              className={`text-sm ${COLUMN_WIDTHS[column] || ''} ${
+                                isChains ? '' : 'truncate cursor-zoom-in select-none'
+                              } ${
+                                column === 'concord_code'
+                                  ? 'font-mono font-semibold text-primary sticky left-0 z-10 bg-inherit'
+                                  : ''
+                              } ${column === 'iswc' ? 'font-mono text-muted-foreground' : ''} ${
+                                column === 'archivo_cwr' ? 'font-mono text-xs text-muted-foreground' : ''
+                              }`}
+                            >
+                              {isChains ? (
+                                <CopyrightChainsModal
+                                  data={obra[column]}
+                                  concordCode={String(obra.concord_code || '')}
+                                  title={String(obra.titulo || '')}
+                                />
+                              ) : (
+                                rawText
+                              )}
+                            </TableCell>
+                          );
+                        })}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -526,6 +574,32 @@ export function ObrasTable() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!expandedCell}
+        onOpenChange={(open) => !open && setExpandedCell(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {expandedCell?.label}
+              {expandedCell?.title ? (
+                <Badge variant="outline" className="font-normal">
+                  {expandedCell.title}
+                </Badge>
+              ) : null}
+            </DialogTitle>
+            {expandedCell?.concordCode ? (
+              <DialogDescription className="font-mono text-xs">
+                {expandedCell.concordCode}
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap break-words">
+            {expandedCell ? formatCellValue(expandedCell.value) || '—' : ''}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
