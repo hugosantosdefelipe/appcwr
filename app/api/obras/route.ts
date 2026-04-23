@@ -49,10 +49,42 @@ export async function GET(request: NextRequest) {
       if (match && value.trim()) {
         const column = match[1];
         if (validColumns.has(column)) {
-          conditions.push(`\`${column}\` LIKE ?`);
           const filterPattern = `%${value.trim()}%`;
-          params.push(filterPattern);
-          countParams.push(filterPattern);
+
+          // Publishers filter: match only via chains that are NOT chain Z.
+          // Chain Z represents the Z-aggregator party; users filtering by
+          // publisher want the "real" controlling publishers, not the Z chain.
+          if (column === 'total_editores') {
+            const publisherChainCond = `EXISTS (
+              SELECT 1 FROM JSON_TABLE(
+                \`copyright_chains\`,
+                '$[*]' COLUMNS (
+                  chain_id VARCHAR(10) PATH '$.id',
+                  single_pub_name VARCHAR(1000) PATH '$.publisher.name',
+                  pubs_json JSON PATH '$.publishers'
+                )
+              ) AS c
+              WHERE COALESCE(c.chain_id, '') <> 'Z'
+                AND (
+                  c.single_pub_name LIKE ?
+                  OR (
+                    c.pubs_json IS NOT NULL AND EXISTS (
+                      SELECT 1 FROM JSON_TABLE(
+                        c.pubs_json, '$[*]' COLUMNS (name VARCHAR(1000) PATH '$.name')
+                      ) AS p
+                      WHERE p.name LIKE ?
+                    )
+                  )
+                )
+            )`;
+            conditions.push(publisherChainCond);
+            params.push(filterPattern, filterPattern);
+            countParams.push(filterPattern, filterPattern);
+          } else {
+            conditions.push(`\`${column}\` LIKE ?`);
+            params.push(filterPattern);
+            countParams.push(filterPattern);
+          }
         }
       }
     }

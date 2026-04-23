@@ -61,8 +61,35 @@ export async function GET(request: NextRequest) {
       if (match && value.trim()) {
         const column = match[1];
         if (validColumns.has(column)) {
-          conditions.push(`\`${column}\` LIKE ?`);
-          params.push(`%${value.trim()}%`);
+          const pat = `%${value.trim()}%`;
+          if (column === 'total_editores') {
+            conditions.push(`EXISTS (
+              SELECT 1 FROM JSON_TABLE(
+                \`copyright_chains\`,
+                '$[*]' COLUMNS (
+                  chain_id VARCHAR(10) PATH '$.id',
+                  single_pub_name VARCHAR(1000) PATH '$.publisher.name',
+                  pubs_json JSON PATH '$.publishers'
+                )
+              ) AS c
+              WHERE COALESCE(c.chain_id, '') <> 'Z'
+                AND (
+                  c.single_pub_name LIKE ?
+                  OR (
+                    c.pubs_json IS NOT NULL AND EXISTS (
+                      SELECT 1 FROM JSON_TABLE(
+                        c.pubs_json, '$[*]' COLUMNS (name VARCHAR(1000) PATH '$.name')
+                      ) AS p
+                      WHERE p.name LIKE ?
+                    )
+                  )
+                )
+            )`);
+            params.push(pat, pat);
+          } else {
+            conditions.push(`\`${column}\` LIKE ?`);
+            params.push(pat);
+          }
         }
       }
     }
