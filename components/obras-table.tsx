@@ -23,7 +23,11 @@ import {
   Filter,
   X,
   FileText,
+  Download,
+  Loader2,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -124,8 +128,108 @@ export function ObrasTable() {
     title: string;
   } | null>(null);
 
+  // --- Selection (persists across filter changes) ----------------------
+  type SelectedRow = {
+    concord_code: string;
+    titulo?: unknown;
+    total_autores?: unknown;
+  };
+  const [selected, setSelected] = useState<Map<string, SelectedRow>>(new Map());
+  const [selectAllLoading, setSelectAllLoading] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportName, setExportName] = useState('');
+
+  const selectedCount = selected.size;
+
+  const toggleOne = useCallback((row: Record<string, unknown>, checked: boolean) => {
+    const id = String(row.concord_code ?? '');
+    if (!id) return;
+    setSelected((prev) => {
+      const next = new Map(prev);
+      if (checked) {
+        next.set(id, {
+          concord_code: id,
+          titulo: row.titulo,
+          total_autores: row.total_autores,
+        });
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelected(new Map()), []);
+
+  const formatForExport = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  };
+
+  const doExportRepertory = useCallback(() => {
+    const name = exportName.trim() || 'repertory';
+    const safeName = name.replace(/[\\/:*?"<>|]+/g, '-');
+    const rows = Array.from(selected.values()).map((r) => ({
+      Title: formatForExport(r.titulo),
+      'Composers/Authors': formatForExport(r.total_autores),
+    }));
+    if (rows.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(rows, {
+      header: ['Title', 'Composers/Authors'],
+    });
+    // Auto-size columns
+    const colAPx = Math.min(
+      60,
+      Math.max(10, ...rows.map((r) => (r.Title || '').length + 2))
+    );
+    const colBPx = Math.min(
+      80,
+      Math.max(18, ...rows.map((r) => (r['Composers/Authors'] || '').length + 2))
+    );
+    ws['!cols'] = [{ wch: colAPx }, { wch: colBPx }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Repertory');
+    XLSX.writeFile(wb, `${safeName}.xlsx`);
+    setExportOpen(false);
+  }, [exportName, selected]);
+
   const debouncedSearch = useDebounce(searchTerm, 400);
   const debouncedFilters = useDebounce(columnFilters, 400);
+
+  const selectAllFiltered = useCallback(async () => {
+    setSelectAllLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      if (debouncedSearch) qs.set('search', debouncedSearch);
+      for (const [col, val] of Object.entries(debouncedFilters)) {
+        if (val) qs.set(`filter[${col}]`, val);
+      }
+      const res = await fetch(`/api/obras/all-filtered?${qs.toString()}`, {
+        cache: 'no-store',
+      });
+      const json = await res.json();
+      if (!json?.success) throw new Error(json?.error || 'Failed to fetch');
+      const rows = (json.data as Record<string, unknown>[]) || [];
+      setSelected((prev) => {
+        const next = new Map(prev);
+        for (const r of rows) {
+          const id = String(r.concord_code ?? '');
+          if (!id) continue;
+          next.set(id, {
+            concord_code: id,
+            titulo: r.titulo,
+            total_autores: r.total_autores,
+          });
+        }
+        return next;
+      });
+    } catch (e) {
+      console.error('Select all filtered error', e);
+    } finally {
+      setSelectAllLoading(false);
+    }
+  }, [debouncedSearch, debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -239,6 +343,32 @@ export function ObrasTable() {
   const fromRecord = pagination ? (page - 1) * limit + 1 : 0;
   const toRecord = pagination ? Math.min(page * limit, pagination.total) : obras.length;
 
+  // Selection helpers relative to the current visible page
+  const pageIds = obras.map((o) => String(o.concord_code ?? ''));
+  const pageSelectedCount = pageIds.filter((id) => id && selected.has(id)).length;
+  const pageAllChecked = pageIds.length > 0 && pageSelectedCount === pageIds.length;
+  const pageSomeChecked = pageSelectedCount > 0 && !pageAllChecked;
+
+  const togglePage = (checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const o of obras) {
+        const id = String(o.concord_code ?? '');
+        if (!id) continue;
+        if (checked) {
+          next.set(id, {
+            concord_code: id,
+            titulo: o.titulo,
+            total_autores: o.total_autores,
+          });
+        } else {
+          next.delete(id);
+        }
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -326,6 +456,97 @@ export function ObrasTable() {
         </CardContent>
       </Card>
 
+      {/* Selection bar */}
+      {selectedCount > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant="default" className="h-6 px-2 font-semibold">
+              {selectedCount}
+            </Badge>
+            <span className="font-medium">
+              work{selectedCount === 1 ? '' : 's'} selected
+            </span>
+            {pagination && selectedCount < pagination.total && (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={selectAllFiltered}
+                disabled={selectAllLoading}
+              >
+                {selectAllLoading ? (
+                  <>
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    Loading…
+                  </>
+                ) : (
+                  <>Select all filtered ({pagination.total.toLocaleString()})</>
+                )}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setExportName(
+                  `repertory-${new Date().toISOString().slice(0, 10)}`
+                );
+                setExportOpen(true);
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Export Repertory
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Export Repertory Dialog */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Repertory</DialogTitle>
+            <DialogDescription>
+              Exports <span className="font-semibold">{selectedCount}</span>{' '}
+              selected work{selectedCount === 1 ? '' : 's'} to Excel with columns{' '}
+              <span className="font-mono text-xs">Title</span> and{' '}
+              <span className="font-mono text-xs">Composers/Authors</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              File name
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={exportName}
+                onChange={(e) => setExportName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') doExportRepertory();
+                }}
+                placeholder="repertory-2026-04-21"
+                className="h-10"
+              />
+              <span className="font-mono text-xs text-muted-foreground">.xlsx</span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setExportOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={doExportRepertory} disabled={!exportName.trim()}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Table */}
       <Card className="shadow-sm overflow-hidden">
         <CardContent className="p-0">
@@ -395,6 +616,13 @@ export function ObrasTable() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="sticky left-0 z-20 w-10 min-w-10 max-w-10 bg-muted/95 backdrop-blur-sm px-2">
+                        <Checkbox
+                          aria-label="Select page"
+                          checked={pageAllChecked ? true : pageSomeChecked ? 'indeterminate' : false}
+                          onCheckedChange={(v) => togglePage(v === true)}
+                        />
+                      </TableHead>
                       {sortedColumns.map((column) => (
                         <TableHead
                           key={column}
@@ -402,7 +630,7 @@ export function ObrasTable() {
                             COLUMN_WIDTHS[column] || ''
                           } ${
                             column === 'concord_code'
-                              ? 'sticky left-0 z-10 bg-muted/95 backdrop-blur-sm'
+                              ? 'sticky left-10 z-10 bg-muted/95 backdrop-blur-sm'
                               : ''
                           }`}
                         >
@@ -412,12 +640,13 @@ export function ObrasTable() {
                     </TableRow>
                     {showFilters && (
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
+                        <TableHead className="sticky left-0 z-20 w-10 min-w-10 max-w-10 bg-muted/95 backdrop-blur-sm" />
                         {sortedColumns.map((column) => (
                           <TableHead
                             key={`filter-${column}`}
                             className={`py-1.5 px-2 ${COLUMN_WIDTHS[column] || ''} ${
                               column === 'concord_code'
-                                ? 'sticky left-0 z-10 bg-muted/95 backdrop-blur-sm'
+                                ? 'sticky left-10 z-10 bg-muted/95 backdrop-blur-sm'
                                 : ''
                             }`}
                           >
@@ -438,13 +667,28 @@ export function ObrasTable() {
                     )}
                   </TableHeader>
                   <TableBody>
-                    {obras.map((obra, index) => (
+                    {obras.map((obra, index) => {
+                      const rowId = String(obra.concord_code ?? '');
+                      const rowSelected = rowId ? selected.has(rowId) : false;
+                      return (
                       <TableRow
-                        key={String(obra.concord_code || index)}
+                        key={rowId || index}
+                        data-state={rowSelected ? 'selected' : undefined}
                         className={`transition-colors ${
-                          index % 2 === 0 ? 'bg-background' : 'bg-muted/15'
+                          rowSelected
+                            ? 'bg-primary/5 hover:bg-primary/10'
+                            : index % 2 === 0
+                              ? 'bg-background'
+                              : 'bg-muted/15'
                         } hover:bg-accent/50`}
                       >
+                        <TableCell className="sticky left-0 z-10 w-10 min-w-10 max-w-10 bg-inherit px-2">
+                          <Checkbox
+                            aria-label={`Select ${rowId}`}
+                            checked={rowSelected}
+                            onCheckedChange={(v) => toggleOne(obra, v === true)}
+                          />
+                        </TableCell>
                         {sortedColumns.map((column) => {
                           const isChains = column === 'copyright_chains';
                           const cellValue = obra[column];
@@ -469,7 +713,7 @@ export function ObrasTable() {
                                 isChains ? '' : 'truncate cursor-zoom-in select-none'
                               } ${
                                 column === 'concord_code'
-                                  ? 'font-mono font-semibold text-primary sticky left-0 z-10 bg-inherit'
+                                  ? 'font-mono font-semibold text-primary sticky left-10 z-10 bg-inherit'
                                   : ''
                               } ${column === 'iswc' ? 'font-mono text-muted-foreground' : ''} ${
                                 column === 'archivo_cwr' ? 'font-mono text-xs text-muted-foreground' : ''
@@ -488,7 +732,8 @@ export function ObrasTable() {
                           );
                         })}
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
