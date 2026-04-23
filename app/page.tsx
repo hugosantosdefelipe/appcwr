@@ -3,6 +3,7 @@ import { ObrasTable } from '@/components/obras-table';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LogoutButton } from '@/components/logout-button';
 import { Button } from '@/components/ui/button';
+import { ProjectsIaDialog } from '@/components/projects-ia-dialog';
 import { Music, Palette } from 'lucide-react';
 
 export default function HomePage() {
@@ -22,6 +23,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ProjectsIaDialog />
             <Link href="/design-system">
               <Button
                 variant="ghost"
