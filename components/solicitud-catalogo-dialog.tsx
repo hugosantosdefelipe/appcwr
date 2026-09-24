@@ -77,7 +77,8 @@ export function SolicitudCatalogoDialog({
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Error generando la solicitud');
+        const detalle = json.diagnostico ? ` [${json.diagnostico}]` : '';
+        throw new Error((json.error || 'Error generando la solicitud') + detalle);
       }
 
       if (enviar) {

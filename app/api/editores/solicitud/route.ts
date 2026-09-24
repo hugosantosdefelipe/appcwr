@@ -89,6 +89,10 @@ function cuerpoCorreo(tipo: TipoCatalogo): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Se rellena segun avanza, para que el catch pueda contar donde fallo
+  let comoResueltoInfo = 'sin llegar a resolver';
+  const diagnostico = () => `DNS: ${comoResueltoInfo}`;
+
   try {
     const body = await request.json().catch(() => null);
     const editor = String(body?.editor ?? '').trim();
@@ -182,18 +186,31 @@ export async function POST(request: NextRequest) {
     const puerto = parseInt(SMTP_PORT || '587', 10);
 
     // En Vercel la resolucion por getaddrinfo falla a ratos con EBUSY, asi que
-    // se resuelve con resolve4 (c-ares, sin threadpool) y se conecta por IP.
-    // El servername mantiene la validacion del certificado contra el dominio.
+    // se conecta por IP. SMTP_IP permite fijarla si el DNS del sandbox tampoco
+    // responde; el servername mantiene la validacion del certificado.
     let destinoSmtp = SMTP_HOST;
     let servername: string | undefined;
-    try {
-      const [ip] = await dns.resolve4(SMTP_HOST);
-      if (ip) {
-        destinoSmtp = ip;
-        servername = SMTP_HOST;
+    let comoResuelto = 'nombre (sin resolver)';
+
+    if (process.env.SMTP_IP) {
+      destinoSmtp = process.env.SMTP_IP;
+      servername = SMTP_HOST;
+      comoResuelto = `SMTP_IP=${destinoSmtp}`;
+      comoResueltoInfo = comoResuelto;
+    } else {
+      try {
+        const [ip] = await dns.resolve4(SMTP_HOST);
+        if (ip) {
+          destinoSmtp = ip;
+          servername = SMTP_HOST;
+          comoResuelto = `resolve4=${ip}`;
+          comoResueltoInfo = comoResuelto;
+        }
+      } catch (e) {
+        comoResuelto =
+          'resolve4 fallo: ' + (e instanceof Error ? e.message : String(e));
+        comoResueltoInfo = comoResuelto;
       }
-    } catch {
-      // Si tampoco resuelve, se intenta con el nombre tal cual
     }
 
     const transporte = nodemailer.createTransport({
@@ -241,6 +258,9 @@ export async function POST(request: NextRequest) {
     console.error('Error generando la solicitud:', error);
     const message =
       error instanceof Error ? error.message : 'Error generando la solicitud';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: message, diagnostico: diagnostico() },
+      { status: 500 }
+    );
   }
 }
