@@ -6,7 +6,6 @@ import {
   generarRepertorioXlsx,
   nombreSolicitud,
   nombreRepertorio,
-  fechaEnLetra,
   type TipoCatalogo,
   type ObraRepertorio,
 } from '@/lib/solicitud';
@@ -57,6 +56,37 @@ const REPERTORIO_SQL = `
   ORDER BY o.titulo
 `;
 
+/**
+ * Cuerpo del correo.
+ *
+ * Un catalogo general cubre todo el repertorio del editor, asi que no se
+ * manda listado de obras y en su lugar se pide el traspaso automatico de las
+ * que ya estan registradas. El especifico si va acompanado de la lista.
+ */
+function cuerpoCorreo(tipo: TipoCatalogo): string {
+  const lineas = ['Estimados Sres.', ''];
+
+  if (tipo === 'GENERAL') {
+    lineas.push('Enviamos la notificación de un contrato general.', '');
+    lineas.push('Rogamos número de catálogo.', '');
+    lineas.push(
+      'Rogamos realicen cambio automático de todas las obras registradas ' +
+        'a favor de este catálogo en SGAE.',
+      ''
+    );
+  } else {
+    lineas.push(
+      'Enviamos la notificación de un contrato específico, así como la lista ' +
+        'de obras controladas a través de él.',
+      ''
+    );
+    lineas.push('Rogamos número de catálogo.', '');
+  }
+
+  lineas.push('Un saludo', 'Hugo', '');
+  return lineas.join('\n');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
@@ -97,17 +127,27 @@ export async function POST(request: NextRequest) {
     }
 
     const hoy = new Date();
+    // El listado de obras solo acompana a los catalogos especificos
+    const conListado = tipo === 'ESPECIFICO';
 
-    const obras = await query<ObraRow[]>(REPERTORIO_SQL, [editor, editor]);
-    const repertorio: ObraRepertorio[] = obras.map((o) => ({
-      Title: String(o.titulo ?? ''),
-      'Composers/Authors': String(o.total_autores ?? ''),
-    }));
+    const docx = await generarSolicitudDocx({
+      editor,
+      ipi: fila.ipi,
+      tipo,
+      fecha: hoy,
+    });
 
-    const [docx, xlsx] = await Promise.all([
-      generarSolicitudDocx({ editor, ipi: fila.ipi, tipo, fecha: hoy }),
-      Promise.resolve(generarRepertorioXlsx(repertorio)),
-    ]);
+    let xlsx: Buffer | null = null;
+    let numObras = 0;
+    if (conListado) {
+      const obras = await query<ObraRow[]>(REPERTORIO_SQL, [editor, editor]);
+      const repertorio: ObraRepertorio[] = obras.map((o) => ({
+        Title: String(o.titulo ?? ''),
+        'Composers/Authors': String(o.total_autores ?? ''),
+      }));
+      numObras = repertorio.length;
+      xlsx = generarRepertorioXlsx(repertorio);
+    }
 
     const nombreDocx = nombreSolicitud();
     const nombreXlsx = nombreRepertorio(editor);
@@ -116,9 +156,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         enviado: false,
-        obras: repertorio.length,
+        tipo,
+        obras: numObras,
         docx: { nombre: nombreDocx, base64: docx.toString('base64') },
-        xlsx: { nombre: nombreXlsx, base64: xlsx.toString('base64') },
+        xlsx: xlsx
+          ? { nombre: nombreXlsx, base64: xlsx.toString('base64') }
+          : null,
       });
     }
 
@@ -128,7 +171,8 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error:
-            'Faltan las variables SMTP_HOST, SMTP_USER o SMTP_PASS en el entorno',
+            'Faltan SMTP_HOST, SMTP_USER o SMTP_PASS. Si acabas de añadirlas ' +
+            'en Vercel, hay que redesplegar para que se apliquen.',
         },
         { status: 500 }
       );
@@ -142,24 +186,18 @@ export async function POST(request: NextRequest) {
       auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
 
-    const etiquetaTipo = tipo === 'GENERAL' ? 'General' : 'Específico';
     const destino = MAIL_TO || SMTP_USER;
+    const adjuntos = [{ filename: nombreDocx, content: docx }];
+    if (xlsx) {
+      adjuntos.push({ filename: nombreXlsx, content: xlsx });
+    }
 
     await transporte.sendMail({
       from: SMTP_USER,
       to: destino,
       subject: 'CATÁLOGOS CONCORD',
-      text:
-        'Estimados Sres.\n\n' +
-        `Enviamos la notificación de un contrato ${etiquetaTipo.toLowerCase()}, ` +
-        'así como la lista de obras controladas a través de él.\n\n' +
-        'Rogamos número de catálogo.\n\n' +
-        'Un saludo\n' +
-        'Hugo\n',
-      attachments: [
-        { filename: nombreDocx, content: docx },
-        { filename: nombreXlsx, content: xlsx },
-      ],
+      text: cuerpoCorreo(tipo),
+      attachments: adjuntos,
     });
 
     // Queda registrado como pedido, con la fecha del envio
@@ -175,8 +213,9 @@ export async function POST(request: NextRequest) {
       success: true,
       enviado: true,
       destino,
-      obras: repertorio.length,
-      adjuntos: [nombreDocx, nombreXlsx],
+      tipo,
+      obras: numObras,
+      adjuntos: adjuntos.map((a) => a.filename),
     });
   } catch (error) {
     console.error('Error generando la solicitud:', error);

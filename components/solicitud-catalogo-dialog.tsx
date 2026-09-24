@@ -82,13 +82,19 @@ export function SolicitudCatalogoDialog({
 
       if (enviar) {
         setExito(
-          `Enviado a ${json.destino} con ${json.obras} obras adjuntas.`
+          json.obras > 0
+            ? `Enviado a ${json.destino} con ${json.obras} obras adjuntas.`
+            : `Enviado a ${json.destino}. Un general no lleva listado de obras.`
         );
         onEnviado();
       } else {
         descargar(json.docx.nombre, json.docx.base64, MIME_DOCX);
-        descargar(json.xlsx.nombre, json.xlsx.base64, MIME_XLSX);
-        setExito(`Descargados los 2 ficheros (${json.obras} obras).`);
+        if (json.xlsx) {
+          descargar(json.xlsx.nombre, json.xlsx.base64, MIME_XLSX);
+          setExito(`Descargados la solicitud y ${json.obras} obras.`);
+        } else {
+          setExito('Descargada la solicitud. Un general no lleva listado.');
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error generando la solicitud');
@@ -121,7 +127,11 @@ export function SolicitudCatalogoDialog({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Obras que se adjuntan</span>
-              <span className="tabular-nums">{obras.toLocaleString('es-ES')}</span>
+              <span className="tabular-nums">
+                {tipo === 'ESPECIFICO'
+                  ? obras.toLocaleString('es-ES')
+                  : 'ninguna, el general las cubre todas'}
+              </span>
             </div>
           </div>
 
