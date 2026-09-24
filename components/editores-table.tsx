@@ -33,7 +33,9 @@ import {
   Check,
   DownloadCloud,
   Loader2,
+  FileText,
 } from 'lucide-react';
+import { SolicitudCatalogoDialog } from '@/components/solicitud-catalogo-dialog';
 
 const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
 type Estado = (typeof ESTADOS)[number];
@@ -157,6 +159,7 @@ export function EditoresTable() {
   const [estadoFilter, setEstadoFilter] = useState('all');
   const [savedEditor, setSavedEditor] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [solicitud, setSolicitud] = useState<EditorRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
 
@@ -390,6 +393,7 @@ export function EditoresTable() {
                     <TableHead className="font-semibold">Nº CATÁLOGO</TableHead>
                     <TableHead className="font-semibold">FECHA PETICIÓN</TableHead>
                     <TableHead className="font-semibold">NOTAS</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -472,6 +476,17 @@ export function EditoresTable() {
                           onSave={(v) => updateEditor(row.editor, { notas: v })}
                         />
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Solicitar catálogo de ${row.editor}`}
+                          title="Solicitar catálogo a SGAE"
+                          onClick={() => setSolicitud(row)}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -532,6 +547,21 @@ export function EditoresTable() {
           )}
         </CardContent>
       </Card>
+
+      {solicitud && (
+        <SolicitudCatalogoDialog
+          key={solicitud.editor}
+          editor={solicitud.editor}
+          ipi={solicitud.ipi}
+          obras={solicitud.obras}
+          tipoActual={solicitud.tipo_catalogo}
+          open={true}
+          onOpenChange={(o) => {
+            if (!o) setSolicitud(null);
+          }}
+          onEnviado={() => mutate()}
+        />
+      )}
     </div>
   );
 }
