@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
 type Estado = (typeof ESTADOS)[number];
 
-const SORT_COLUMNS = ['editor', 'ipi', 'obras', 'estado', 'numero_catalogo', 'fecha_peticion'] as const;
+const SORT_COLUMNS = ['editor', 'ipi', 'obras', 'estado', 'tipo_catalogo', 'peer', 'numero_catalogo', 'fecha_peticion'] as const;
 
 /**
  * Refresca la lista de editores controlados a partir de cwr_obras.
@@ -37,6 +37,8 @@ interface EditorRow {
   ipi: string | null;
   obras: number;
   estado: Estado;
+  tipo_catalogo: string | null;
+  peer: string | null;
   numero_catalogo: string | null;
   fecha_peticion: string | null;
   notas: string | null;
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
     const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const dataSql = `
-      SELECT editor, ipi, obras, estado, numero_catalogo,
+      SELECT editor, ipi, obras, estado, tipo_catalogo, peer, numero_catalogo,
              DATE_FORMAT(fecha_peticion, '%Y-%m-%d') AS fecha_peticion, notas
       FROM editores_sgae
       ${whereSql}
@@ -177,6 +179,18 @@ export async function PATCH(request: NextRequest) {
       params.push(v === '' ? null : v);
     }
 
+    if (body.tipo_catalogo !== undefined) {
+      const v = String(body.tipo_catalogo).trim().toUpperCase();
+      if (v !== '' && v !== 'GENERAL' && v !== 'ESPECIFICO') {
+        return NextResponse.json(
+          { success: false, error: `tipo_catalogo no valido: ${body.tipo_catalogo}` },
+          { status: 400 }
+        );
+      }
+      sets.push('tipo_catalogo = ?');
+      params.push(v === '' ? null : v);
+    }
+
     if (body.notas !== undefined) {
       const v = String(body.notas).trim();
       sets.push('notas = ?');
@@ -194,7 +208,7 @@ export async function PATCH(request: NextRequest) {
     await query(`UPDATE editores_sgae SET ${sets.join(', ')} WHERE editor = ?`, params);
 
     const rows = await query<EditorRow[]>(
-      `SELECT editor, ipi, obras, estado, numero_catalogo,
+      `SELECT editor, ipi, obras, estado, tipo_catalogo, peer, numero_catalogo,
               DATE_FORMAT(fecha_peticion, '%Y-%m-%d') AS fecha_peticion, notas
        FROM editores_sgae WHERE editor = ?`,
       [editor]

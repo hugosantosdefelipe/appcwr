@@ -59,6 +59,8 @@ interface EditorRow {
   ipi: string | null;
   obras: number;
   estado: Estado;
+  tipo_catalogo: string | null;
+  peer: string | null;
   numero_catalogo: string | null;
   fecha_peticion: string | null;
   notas: string | null;
@@ -383,6 +385,8 @@ export function EditoresTable() {
                     <TableHead className="font-semibold">IPI</TableHead>
                     <TableHead className="text-right font-semibold">OBRAS</TableHead>
                     <TableHead className="font-semibold">ESTADO</TableHead>
+                    <TableHead className="font-semibold">TIPO</TableHead>
+                    <TableHead className="font-semibold">PEER</TableHead>
                     <TableHead className="font-semibold">Nº CATÁLOGO</TableHead>
                     <TableHead className="font-semibold">FECHA PETICIÓN</TableHead>
                     <TableHead className="font-semibold">NOTAS</TableHead>
@@ -423,6 +427,26 @@ export function EditoresTable() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={row.tipo_catalogo ?? 'none'}
+                          onValueChange={(v) =>
+                            updateEditor(row.editor, { tipo_catalogo: v === 'none' ? '' : v })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[130px]">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">—</SelectItem>
+                            <SelectItem value="GENERAL">General</SelectItem>
+                            <SelectItem value="ESPECIFICO">Específico</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {row.peer ?? '—'}
                       </TableCell>
                       <TableCell>
                         <EditableCell
