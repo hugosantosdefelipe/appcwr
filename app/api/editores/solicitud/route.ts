@@ -91,7 +91,8 @@ function cuerpoCorreo(tipo: TipoCatalogo): string {
 export async function POST(request: NextRequest) {
   // Se rellena segun avanza, para que el catch pueda contar donde fallo
   let comoResueltoInfo = 'sin llegar a resolver';
-  const diagnostico = () => `DNS: ${comoResueltoInfo}`;
+  let hostInfo = '';
+  const diagnostico = () => `DNS: ${comoResueltoInfo}${hostInfo}`;
 
   try {
     const body = await request.json().catch(() => null);
@@ -170,7 +171,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_TO } = process.env;
+    // Las variables se recortan: pegarlas en el panel suele dejar espacios o
+    // un salto de linea al final, y eso hace que el DNS de EBADNAME.
+    const limpiar = (v?: string) => (v ?? '').replace(/\s+/g, '');
+    const SMTP_HOST = limpiar(process.env.SMTP_HOST);
+    const SMTP_PORT = limpiar(process.env.SMTP_PORT);
+    const SMTP_USER = limpiar(process.env.SMTP_USER);
+    const SMTP_PASS = process.env.SMTP_PASS ?? '';
+    const MAIL_TO = limpiar(process.env.MAIL_TO);
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
       return NextResponse.json(
         {
@@ -191,6 +199,10 @@ export async function POST(request: NextRequest) {
     let destinoSmtp = SMTP_HOST;
     let servername: string | undefined;
     let comoResuelto = 'nombre (sin resolver)';
+    const crudo = process.env.SMTP_HOST ?? '';
+    if (crudo !== SMTP_HOST) {
+      hostInfo = ` | SMTP_HOST traia caracteres raros: ${JSON.stringify(crudo)}`;
+    }
 
     if (process.env.SMTP_IP) {
       destinoSmtp = process.env.SMTP_IP;
