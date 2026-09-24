@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
 type Estado = (typeof ESTADOS)[number];
 
-const SORT_COLUMNS = ['editor', 'obras', 'estado', 'numero_catalogo', 'fecha_peticion'] as const;
+const SORT_COLUMNS = ['editor', 'ipi', 'obras', 'estado', 'numero_catalogo', 'fecha_peticion'] as const;
 
 /**
  * Refresca la lista de editores controlados a partir de cwr_obras.
@@ -34,6 +34,7 @@ const REFRESH_SQL = `
 
 interface EditorRow {
   editor: string;
+  ipi: string | null;
   obras: number;
   estado: Estado;
   numero_catalogo: string | null;
@@ -68,9 +69,9 @@ export async function GET(request: NextRequest) {
     const filterParams: unknown[] = [];
 
     if (search) {
-      conditions.push('(editor LIKE ? OR numero_catalogo LIKE ? OR notas LIKE ?)');
+      conditions.push('(editor LIKE ? OR ipi LIKE ? OR numero_catalogo LIKE ? OR notas LIKE ?)');
       const pattern = `%${search}%`;
-      filterParams.push(pattern, pattern, pattern);
+      filterParams.push(pattern, pattern, pattern, pattern);
     }
 
     if (estado && (ESTADOS as readonly string[]).includes(estado)) {
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
     const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const dataSql = `
-      SELECT editor, obras, estado, numero_catalogo,
+      SELECT editor, ipi, obras, estado, numero_catalogo,
              DATE_FORMAT(fecha_peticion, '%Y-%m-%d') AS fecha_peticion, notas
       FROM editores_sgae
       ${whereSql}
@@ -193,7 +194,7 @@ export async function PATCH(request: NextRequest) {
     await query(`UPDATE editores_sgae SET ${sets.join(', ')} WHERE editor = ?`, params);
 
     const rows = await query<EditorRow[]>(
-      `SELECT editor, obras, estado, numero_catalogo,
+      `SELECT editor, ipi, obras, estado, numero_catalogo,
               DATE_FORMAT(fecha_peticion, '%Y-%m-%d') AS fecha_peticion, notas
        FROM editores_sgae WHERE editor = ?`,
       [editor]

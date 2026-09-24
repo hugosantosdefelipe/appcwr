@@ -56,6 +56,7 @@ const ESTADO_STYLES: Record<Estado, string> = {
 
 interface EditorRow {
   editor: string;
+  ipi: string | null;
   obras: number;
   estado: Estado;
   numero_catalogo: string | null;
@@ -305,7 +306,7 @@ export function EditoresTable() {
             <div className="relative flex-1">
               <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
-                placeholder="Buscar editor, nº de catálogo o notas..."
+                placeholder="Buscar editor, IPI, nº de catálogo o notas..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-9"
@@ -379,6 +380,7 @@ export function EditoresTable() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold">EDITOR</TableHead>
+                    <TableHead className="font-semibold">IPI</TableHead>
                     <TableHead className="text-right font-semibold">OBRAS</TableHead>
                     <TableHead className="font-semibold">ESTADO</TableHead>
                     <TableHead className="font-semibold">Nº CATÁLOGO</TableHead>
@@ -398,6 +400,9 @@ export function EditoresTable() {
                             <Check className="h-4 w-4 shrink-0 text-emerald-600" />
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-xs tabular-nums">
+                        {row.ipi ?? '—'}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {row.obras.toLocaleString('es-ES')}
