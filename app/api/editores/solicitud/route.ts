@@ -148,13 +148,14 @@ export async function POST(request: NextRequest) {
     await transporte.sendMail({
       from: SMTP_USER,
       to: destino,
-      subject: `Solicitud de registro de catálogo ${etiquetaTipo} — ${editor}`,
+      subject: 'CATÁLOGOS CONCORD',
       text:
-        `Solicitud de registro de catálogo para ${editor} (IPI ${fila.ipi}).\n\n` +
-        `Tipo: ${etiquetaTipo}\n` +
-        `Obras del editor: ${repertorio.length}\n` +
-        `Fecha: ${fechaEnLetra(hoy)}\n\n` +
-        `Se adjuntan la solicitud y el listado de obras.\n`,
+        'Estimados Sres.\n\n' +
+        `Enviamos la notificación de un contrato ${etiquetaTipo.toLowerCase()}, ` +
+        'así como la lista de obras controladas a través de él.\n\n' +
+        'Rogamos número de catálogo.\n\n' +
+        'Un saludo\n' +
+        'Hugo\n',
       attachments: [
         { filename: nombreDocx, content: docx },
         { filename: nombreXlsx, content: xlsx },
