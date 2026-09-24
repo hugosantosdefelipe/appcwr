@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { promises as dns } from 'dns';
+import { guardarEnEnviados } from '@/lib/guardar-enviado';
 import { query } from '@/lib/db';
 import {
   generarSolicitudDocx,
@@ -241,13 +242,45 @@ export async function POST(request: NextRequest) {
       adjuntos.push({ filename: nombreXlsx, content: xlsx });
     }
 
-    await transporte.sendMail({
+    const mensaje = {
       from: SMTP_USER,
       to: destino,
       subject: 'CATÁLOGOS CONCORD',
       text: cuerpoCorreo(tipo),
       attachments: adjuntos,
-    });
+    };
+
+    const info = await transporte.sendMail(mensaje);
+
+    // SMTP no deja copia en Enviados, hay que archivarla por IMAP aparte.
+    // Se reconstruye el mismo mensaje para subir exactamente lo enviado.
+    let copiaEnviados: string | null = null;
+    let avisoCopia: string | null = null;
+    try {
+      const constructor = nodemailer.createTransport({
+        streamTransport: true,
+        buffer: true,
+        newline: 'unix',
+      });
+      const generado = await constructor.sendMail({
+        ...mensaje,
+        messageId: info.messageId,
+      });
+      const resultado = await guardarEnEnviados({
+        host: limpiar(process.env.IMAP_HOST) || SMTP_HOST,
+        port: parseInt(limpiar(process.env.IMAP_PORT) || '993', 10),
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+        raw: generado.message as Buffer,
+      });
+      if ('carpeta' in resultado) {
+        copiaEnviados = resultado.carpeta;
+      } else {
+        avisoCopia = resultado.error;
+      }
+    } catch (e) {
+      avisoCopia = e instanceof Error ? e.message : String(e);
+    }
 
     // Queda registrado como pedido, con la fecha del envio
     const fechaSql = hoy.toISOString().slice(0, 10);
@@ -265,6 +298,8 @@ export async function POST(request: NextRequest) {
       tipo,
       obras: numObras,
       adjuntos: adjuntos.map((a) => a.filename),
+      copiaEnviados,
+      avisoCopia,
     });
   } catch (error) {
     console.error('Error generando la solicitud:', error);

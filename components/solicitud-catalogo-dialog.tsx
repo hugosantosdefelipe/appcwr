@@ -82,11 +82,16 @@ export function SolicitudCatalogoDialog({
       }
 
       if (enviar) {
-        setExito(
+        const base =
           json.obras > 0
             ? `Enviado a ${json.destino} con ${json.obras} obras adjuntas.`
-            : `Enviado a ${json.destino}. Un general no lleva listado de obras.`
-        );
+            : `Enviado a ${json.destino}. Un general no lleva listado de obras.`;
+        const copia = json.copiaEnviados
+          ? ` Copia guardada en "${json.copiaEnviados}".`
+          : json.avisoCopia
+            ? ` Ojo: no se pudo dejar copia en Enviados (${json.avisoCopia}).`
+            : '';
+        setExito(base + copia);
         onEnviado();
       } else {
         descargar(json.docx.nombre, json.docx.base64, MIME_DOCX);
