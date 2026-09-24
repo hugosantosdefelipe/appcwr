@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // Sanitizar nombre de columna para ORDER BY (prevenir SQL injection)
-    const allowedSortColumns = ['concord_code', 'created_at', 'updated_at', 'title'];
+    // Sanitizar nombre de columna para ORDER BY (prevenir SQL injection).
+    // Solo columnas que existen realmente en cwr_obras.
+    const allowedSortColumns = ['concord_code', 'titulo', 'iswc', 'archivo_cwr'];
     const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'concord_code';
 
     // Obtener columnas de la tabla para validar filtros
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     const countParams: unknown[] = [];
 
     if (search) {
-      conditions.push('(concord_code LIKE ? OR title LIKE ?)');
+      conditions.push('(concord_code LIKE ? OR titulo LIKE ?)');
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern);
       countParams.push(searchPattern, searchPattern);
