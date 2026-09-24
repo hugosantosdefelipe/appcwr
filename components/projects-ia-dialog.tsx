@@ -181,12 +181,12 @@ export function ProjectsIaDialog() {
                 <Download className="h-4 w-4" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold">Export Repertory</div>
+                <div className="text-sm font-semibold">Exportar repertorio</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  Excel with <span className="font-mono">Title</span> and{' '}
-                  <span className="font-mono">Composers/Authors</span> for every
-                  work in which a given publisher controls rights outside chain
-                  Z.
+                  Excel con <span className="font-mono">Title</span> y{' '}
+                  <span className="font-mono">Composers/Authors</span> de todas
+                  las obras en las que un editor controla derechos fuera de la
+                  cadena Z.
                 </div>
               </div>
             </button>
@@ -201,7 +201,7 @@ export function ProjectsIaDialog() {
               </label>
               <Input
                 autoFocus
-                placeholder="e.g. CONCORD SOUNDS"
+                placeholder="p. ej. CONCORD SOUNDS"
                 value={publisherInput}
                 onChange={(e) => setPublisherInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -299,7 +299,7 @@ export function ProjectsIaDialog() {
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Close
               </Button>
-              <Button onClick={reset}>Run another action</Button>
+              <Button onClick={reset}>Ejecutar otra acción</Button>
             </div>
           </div>
         )}

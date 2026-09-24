@@ -33,9 +33,9 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Design System — Works Registry',
+  title: 'Design System — Repertorio Concord',
   description:
-    'Foundations, components and rules for the Proyectos de Autor Works Registry UI',
+    'Foundations, components and rules for the Proyectos de Autor Repertorio Concord UI',
 };
 
 type SwatchProps = {
@@ -194,7 +194,7 @@ export default function DesignSystemPage() {
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Design System</h1>
               <p className="text-sm text-muted-foreground">
-                Works Registry — foundations, components & rules
+                Repertorio Concord — foundations, components & rules
               </p>
             </div>
           </div>
@@ -244,10 +244,10 @@ export default function DesignSystemPage() {
                     </div>
                     <div>
                       <div className="text-2xl font-semibold tracking-tight leading-tight">
-                        Works Registry
+                        Repertorio Concord
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        CWR Management System
+                        Obras recibidas de Concord por CWR
                       </div>
                     </div>
                   </div>
@@ -366,7 +366,7 @@ export default function DesignSystemPage() {
                 <div className="space-y-3">
                   <div className="flex items-baseline gap-4">
                     <span className="w-24 font-mono text-[11px] text-muted-foreground">H1 · 24/600</span>
-                    <span className="text-2xl font-semibold tracking-tight">Works Registry</span>
+                    <span className="text-2xl font-semibold tracking-tight">Repertorio Concord</span>
                   </div>
                   <div className="flex items-baseline gap-4">
                     <span className="w-24 font-mono text-[11px] text-muted-foreground">H2 · 20/600</span>

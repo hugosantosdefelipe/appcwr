@@ -18,7 +18,7 @@ export function LogoutButton() {
       variant="ghost"
       size="icon"
       onClick={handleLogout}
-      aria-label="Sign out"
+      aria-label="Cerrar sesión"
       className="text-muted-foreground hover:text-foreground"
     >
       <LogOut className="h-4 w-4" />

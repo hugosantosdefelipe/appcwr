@@ -289,7 +289,7 @@ export function ObrasTable() {
         <CardContent className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-4">
             <Spinner className="h-8 w-8" />
-            <p className="text-muted-foreground text-sm">Loading records from database...</p>
+            <p className="text-muted-foreground text-sm">Cargando obras...</p>
           </div>
         </CardContent>
       </Card>
@@ -306,7 +306,7 @@ export function ObrasTable() {
               <AlertCircle className="h-7 w-7 text-destructive" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Failed to load data</p>
+              <p className="font-semibold text-foreground">Error al cargar los datos</p>
               <p className="text-sm text-muted-foreground mt-1.5">
                 {data?.error || error?.message || 'Could not connect to the database'}
               </p>
@@ -405,11 +405,11 @@ export function ObrasTable() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search-obras"
-                  placeholder="Search by code or title..."
+                  placeholder="Buscar por código o título..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-64 pl-9 h-9 text-sm"
-                  aria-label="Search works"
+                  aria-label="Buscar obras"
                 />
               </div>
 
@@ -418,11 +418,11 @@ export function ObrasTable() {
                   variant={showFilters ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setShowFilters(f => !f)}
-                  aria-label="Column filters"
+                  aria-label="Filtros por columna"
                   className="relative rounded-none h-9 px-3 gap-1.5"
                 >
                   <Filter className="h-3.5 w-3.5" />
-                  <span className="text-xs">Filters</span>
+                  <span className="text-xs">Filtros</span>
                   {activeFilterCount > 0 && (
                     <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] font-bold ml-0.5">
                       {activeFilterCount}
@@ -434,7 +434,7 @@ export function ObrasTable() {
                     variant="ghost"
                     size="sm"
                     onClick={clearAllFilters}
-                    aria-label="Clear all filters"
+                    aria-label="Limpiar todos los filtros"
                     className="rounded-none h-9 px-2 border-l text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -446,7 +446,7 @@ export function ObrasTable() {
                 variant="ghost"
                 size="icon"
                 onClick={handleRefresh}
-                aria-label="Refresh data"
+                aria-label="Actualizar datos"
                 className="h-9 w-9"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -509,11 +509,12 @@ export function ObrasTable() {
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Export Repertory</DialogTitle>
+            <DialogTitle>Exportar repertorio</DialogTitle>
             <DialogDescription>
-              Exports <span className="font-semibold">{selectedCount}</span>{' '}
-              selected work{selectedCount === 1 ? '' : 's'} to Excel with columns{' '}
-              <span className="font-mono text-xs">Title</span> and{' '}
+              Exporta <span className="font-semibold">{selectedCount}</span>{' '}
+              obra{selectedCount === 1 ? '' : 's'} seleccionada
+              {selectedCount === 1 ? '' : 's'} a Excel con las columnas{' '}
+              <span className="font-mono text-xs">Title</span> y{' '}
               <span className="font-mono text-xs">Composers/Authors</span>.
             </DialogDescription>
           </DialogHeader>
@@ -618,7 +619,7 @@ export function ObrasTable() {
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableHead className="sticky left-0 z-20 w-10 min-w-10 max-w-10 bg-muted/95 backdrop-blur-sm px-2">
                         <Checkbox
-                          aria-label="Select page"
+                          aria-label="Seleccionar página"
                           checked={pageAllChecked ? true : pageSomeChecked ? 'indeterminate' : false}
                           onCheckedChange={(v) => togglePage(v === true)}
                         />
@@ -654,7 +655,7 @@ export function ObrasTable() {
                               <span className="text-xs text-muted-foreground">—</span>
                             ) : (
                               <Input
-                                placeholder="Filter..."
+                                placeholder="Filtrar..."
                                 value={columnFilters[column] || ''}
                                 onChange={(e) => handleColumnFilter(column, e.target.value)}
                                 className="h-7 text-xs min-w-[80px] bg-background"
@@ -742,7 +743,7 @@ export function ObrasTable() {
               {pagination && pagination.totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Rows per page</span>
+                    <span>Filas por página</span>
                     <Select
                       value={String(limit)}
                       onValueChange={(val) => {
@@ -750,7 +751,7 @@ export function ObrasTable() {
                         setPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-[68px] h-8 text-xs" aria-label="Rows per page">
+                      <SelectTrigger className="w-[68px] h-8 text-xs" aria-label="Filas por página">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -771,7 +772,7 @@ export function ObrasTable() {
                       className="h-8 w-8"
                       onClick={() => setPage(1)}
                       disabled={!pagination.hasPrev}
-                      aria-label="First page"
+                      aria-label="Primera página"
                     >
                       <ChevronsLeft className="h-4 w-4" />
                     </Button>
@@ -781,7 +782,7 @@ export function ObrasTable() {
                       className="h-8 w-8"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={!pagination.hasPrev}
-                      aria-label="Previous page"
+                      aria-label="Página anterior"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -798,7 +799,7 @@ export function ObrasTable() {
                       className="h-8 w-8"
                       onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                       disabled={!pagination.hasNext}
-                      aria-label="Next page"
+                      aria-label="Página siguiente"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -808,7 +809,7 @@ export function ObrasTable() {
                       className="h-8 w-8"
                       onClick={() => setPage(pagination.totalPages)}
                       disabled={!pagination.hasNext}
-                      aria-label="Last page"
+                      aria-label="Última página"
                     >
                       <ChevronsRight className="h-4 w-4" />
                     </Button>

@@ -25,7 +25,7 @@ export default function EditoresPage() {
             <Link href="/">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Works Registry
+                Repertorio Concord
               </Button>
             </Link>
             <ThemeToggle />

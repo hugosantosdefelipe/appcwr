@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Works Registry — CWR',
-  description: 'CWR musical works management and visualization system',
+  title: 'Repertorio Concord — CWR',
+  description: 'Obras recibidas de Concord por CWR',
   generator: 'Next.js',
   icons: {
     icon: [

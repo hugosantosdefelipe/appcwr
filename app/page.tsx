@@ -16,9 +16,9 @@ export default function HomePage() {
               <Music className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Works Registry</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Repertorio Concord</h1>
               <p className="text-muted-foreground text-sm">
-                CWR Management System
+                Obras recibidas de Concord por CWR
               </p>
             </div>
           </div>

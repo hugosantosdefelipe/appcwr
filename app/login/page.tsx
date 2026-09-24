@@ -49,8 +49,8 @@ export default function LoginPage() {
             <Music className="h-7 w-7" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight">Works Registry</h1>
-            <p className="text-sm text-muted-foreground">CWR Management System</p>
+            <h1 className="text-xl font-semibold tracking-tight">Repertorio Concord</h1>
+            <p className="text-sm text-muted-foreground">Obras recibidas de Concord por CWR</p>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder="Contraseña"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
@@ -80,7 +80,7 @@ export default function LoginPage() {
                   autoFocus
                   required
                   disabled={loading}
-                  aria-label="Password"
+                  aria-label="Contraseña"
                 />
                 <button
                   type="button"
