@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { promises as dns } from 'dns';
 import { query } from '@/lib/db';
 import {
   generarSolicitudDocx,
@@ -179,11 +180,30 @@ export async function POST(request: NextRequest) {
     }
 
     const puerto = parseInt(SMTP_PORT || '587', 10);
+
+    // En Vercel la resolucion por getaddrinfo falla a ratos con EBUSY, asi que
+    // se resuelve con resolve4 (c-ares, sin threadpool) y se conecta por IP.
+    // El servername mantiene la validacion del certificado contra el dominio.
+    let destinoSmtp = SMTP_HOST;
+    let servername: string | undefined;
+    try {
+      const [ip] = await dns.resolve4(SMTP_HOST);
+      if (ip) {
+        destinoSmtp = ip;
+        servername = SMTP_HOST;
+      }
+    } catch {
+      // Si tampoco resuelve, se intenta con el nombre tal cual
+    }
+
     const transporte = nodemailer.createTransport({
-      host: SMTP_HOST,
+      host: destinoSmtp,
       port: puerto,
       secure: puerto === 465,
       auth: { user: SMTP_USER, pass: SMTP_PASS },
+      ...(servername ? { tls: { servername } } : {}),
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
     });
 
     const destino = MAIL_TO || SMTP_USER;
