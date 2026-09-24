@@ -4,7 +4,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LogoutButton } from '@/components/logout-button';
 import { Button } from '@/components/ui/button';
 import { ProjectsIaDialog } from '@/components/projects-ia-dialog';
-import { Music, Palette } from 'lucide-react';
+import { Music, Palette, Building2 } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -24,6 +24,16 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2">
             <ProjectsIaDialog />
+            <Link href="/editores">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Editores SGAE
+              </Button>
+            </Link>
             <Link href="/design-system">
               <Button
                 variant="ghost"
