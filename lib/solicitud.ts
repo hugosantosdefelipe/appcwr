@@ -91,14 +91,24 @@ export function generarRepertorioXlsx(obras: ObraRepertorio[]): Buffer {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 }
 
-/** Nombre de fichero sin caracteres que den problemas al adjuntar. */
-export function nombreFichero(editor: string, ext: string): string {
-  const limpio = editor
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^A-Za-z0-9 ._-]/g, '')
+/** Quita solo lo que Windows no admite en un nombre de fichero. */
+function limpiarNombre(s: string): string {
+  return s
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
-    .replace(/\s+/g, '_')
-    .slice(0, 60);
-  return `${limpio || 'editor'}.${ext}`;
+    .slice(0, 80)
+    // Un editor acabado en punto dejaria el fichero con dos puntos seguidos
+    .replace(/\.+$/, '')
+    .trim();
+}
+
+/** La solicitud va siempre con el mismo nombre. */
+export function nombreSolicitud(): string {
+  return 'CONTRATO SUBEDICIÓN CONCORD.docx';
+}
+
+/** El listado de obras lleva el nombre del editor para distinguirlo. */
+export function nombreRepertorio(editor: string): string {
+  return `OBRAS ${limpiarNombre(editor) || 'EDITOR'}.xlsx`;
 }

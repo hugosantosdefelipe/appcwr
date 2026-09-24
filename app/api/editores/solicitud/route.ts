@@ -4,7 +4,8 @@ import { query } from '@/lib/db';
 import {
   generarSolicitudDocx,
   generarRepertorioXlsx,
-  nombreFichero,
+  nombreSolicitud,
+  nombreRepertorio,
   fechaEnLetra,
   type TipoCatalogo,
   type ObraRepertorio,
@@ -108,8 +109,8 @@ export async function POST(request: NextRequest) {
       Promise.resolve(generarRepertorioXlsx(repertorio)),
     ]);
 
-    const nombreDocx = nombreFichero(`Solicitud ${editor}`, 'docx');
-    const nombreXlsx = nombreFichero(`Repertorio ${editor}`, 'xlsx');
+    const nombreDocx = nombreSolicitud();
+    const nombreXlsx = nombreRepertorio(editor);
 
     if (!enviar) {
       return NextResponse.json({
