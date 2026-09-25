@@ -161,8 +161,9 @@ export function EditoresTable() {
   const [savedEditor, setSavedEditor] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [solicitud, setSolicitud] = useState<EditorRow[] | null>(null);
-  // La seleccion se guarda por nombre y sobrevive a cambios de pagina
-  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  // Se guarda la fila entera, no solo el nombre: la seleccion sobrevive al
+  // cambio de pagina y hay que poder solicitar editores que ya no estan a la vista.
+  const [seleccion, setSeleccion] = useState<Map<string, EditorRow>>(new Map());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
 
@@ -367,15 +368,12 @@ export function EditoresTable() {
               </span>
               <Button
                 size="sm"
-                onClick={() =>
-                  setSolicitud(editores.filter((r) => seleccion.has(r.editor)))
-                }
-                disabled={!editores.some((r) => seleccion.has(r.editor))}
+                onClick={() => setSolicitud([...seleccion.values()])}
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Solicitar en una sola carta
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setSeleccion(new Set())}>
+              <Button variant="ghost" size="sm" onClick={() => setSeleccion(new Map())}>
                 Quitar selección
               </Button>
             </div>
@@ -416,12 +414,12 @@ export function EditoresTable() {
                           editores.every((r) => seleccion.has(r.editor))
                         }
                         onCheckedChange={(v) => {
-                          const s = new Set(seleccion);
+                          const m = new Map(seleccion);
                           for (const r of editores) {
-                            if (v) s.add(r.editor);
-                            else s.delete(r.editor);
+                            if (v) m.set(r.editor, r);
+                            else m.delete(r.editor);
                           }
-                          setSeleccion(s);
+                          setSeleccion(m);
                         }}
                         aria-label="Seleccionar todos de esta página"
                       />
@@ -445,10 +443,10 @@ export function EditoresTable() {
                         <Checkbox
                           checked={seleccion.has(row.editor)}
                           onCheckedChange={(v) => {
-                            const s = new Set(seleccion);
-                            if (v) s.add(row.editor);
-                            else s.delete(row.editor);
-                            setSeleccion(s);
+                            const m = new Map(seleccion);
+                            if (v) m.set(row.editor, row);
+                            else m.delete(row.editor);
+                            setSeleccion(m);
                           }}
                           aria-label={`Seleccionar ${row.editor}`}
                         />
@@ -625,7 +623,7 @@ export function EditoresTable() {
             if (!o) setSolicitud(null);
           }}
           onEnviado={() => {
-            setSeleccion(new Set());
+            setSeleccion(new Map());
             mutate();
           }}
         />
