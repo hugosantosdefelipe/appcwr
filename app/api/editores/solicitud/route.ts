@@ -235,7 +235,14 @@ export async function POST(request: NextRequest) {
       greetingTimeout: 20000,
     });
 
-    const destino = MAIL_TO || SMTP_USER;
+    // Destinatarios reales. MAIL_TO sigue mandando si esta definida, para poder
+    // probar contra una direccion propia sin escribir a la sociedad.
+    const destino = MAIL_TO || 'contratos.internacional@sgae.es';
+    const copia = MAIL_TO
+      ? []
+      : (limpiar(process.env.MAIL_CC) ||
+          'yolanda@proyectosdeautor.com,iris@proyectosdeautor.com'
+        ).split(',');
     const adjuntos = [{ filename: nombrePdf, content: pdf }];
     if (xlsx) {
       adjuntos.push({ filename: nombreXlsx, content: xlsx });
@@ -244,6 +251,7 @@ export async function POST(request: NextRequest) {
     const mensaje = {
       from: SMTP_USER,
       to: destino,
+      ...(copia.length ? { cc: copia } : {}),
       subject: 'CATÁLOGOS CONCORD',
       text: cuerpoCorreo(tipo),
       attachments: adjuntos,
@@ -294,6 +302,7 @@ export async function POST(request: NextRequest) {
       success: true,
       enviado: true,
       destino,
+      copia,
       tipo,
       obras: numObras,
       adjuntos: adjuntos.map((a) => a.filename),
