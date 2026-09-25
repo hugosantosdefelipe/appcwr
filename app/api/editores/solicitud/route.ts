@@ -61,27 +61,44 @@ const REPERTORIO_SQL = `
  * Cuerpo del correo.
  *
  * Un catalogo general cubre todo el repertorio del editor, asi que no se
- * manda listado de obras y en su lugar se pide el traspaso automatico de las
+ * manda listado de obras y en su lugar se pide el traspaso automático de las
  * que ya estan registradas. El especifico si va acompanado de la lista.
  */
-function cuerpoCorreo(tipo: TipoCatalogo): string {
+function cuerpoCorreo(tipo: TipoCatalogo, cuantos: number): string {
+  const enLote = cuantos > 1;
   const lineas = ['Estimados Sres.', ''];
 
   if (tipo === 'GENERAL') {
-    lineas.push('Enviamos la notificación de un contrato general.', '');
-    lineas.push('Rogamos número de catálogo.', '');
+    lineas.push(
+      enLote
+        ? `Enviamos la notificación de ${cuantos} contratos generales.`
+        : 'Enviamos la notificación de un contrato general.',
+      ''
+    );
+    lineas.push(
+      enLote ? 'Rogamos números de catálogo.' : 'Rogamos número de catálogo.',
+      ''
+    );
     lineas.push(
       'Rogamos realicen cambio automático de todas las obras registradas ' +
-        'a favor de este catálogo en SGAE.',
+        (enLote
+          ? 'a favor de estos catálogos en SGAE.'
+          : 'a favor de este catálogo en SGAE.'),
       ''
     );
   } else {
     lineas.push(
-      'Enviamos la notificación de un contrato específico, así como la lista ' +
-        'de obras controladas a través de él.',
+      enLote
+        ? `Enviamos la notificación de ${cuantos} contratos específicos, así ` +
+          'como las listas de obras controladas a través de ellos.'
+        : 'Enviamos la notificación de un contrato específico, así como la ' +
+          'lista de obras controladas a través de él.',
       ''
     );
-    lineas.push('Rogamos número de catálogo.', '');
+    lineas.push(
+      enLote ? 'Rogamos números de catálogo.' : 'Rogamos número de catálogo.',
+      ''
+    );
   }
 
   lineas.push('Un saludo', 'Hugo', '');
@@ -284,7 +301,7 @@ export async function POST(request: NextRequest) {
       to: destino,
       ...(copia.length ? { cc: copia } : {}),
       subject: 'CATÁLOGOS CONCORD',
-      text: cuerpoCorreo(tipo),
+      text: cuerpoCorreo(tipo, filas.length),
       attachments: adjuntos,
     };
 
