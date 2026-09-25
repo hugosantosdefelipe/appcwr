@@ -38,10 +38,16 @@ export async function GET(request: NextRequest) {
     const countParams: unknown[] = [];
 
     if (search) {
-      conditions.push('(concord_code LIKE ? OR titulo LIKE ?)');
+      // Busca tambien por autor, interprete e ISWC: buscar un compositor es
+      // tan habitual como buscar el titulo.
+      conditions.push(
+        '(concord_code LIKE ? OR titulo LIKE ? OR iswc LIKE ?' +
+          ' OR total_autores LIKE ? OR interpretes LIKE ?)'
+      );
       const searchPattern = `%${search}%`;
-      params.push(searchPattern, searchPattern);
-      countParams.push(searchPattern, searchPattern);
+      const cinco = Array(5).fill(searchPattern);
+      params.push(...cinco);
+      countParams.push(...cinco);
     }
 
     // Filtros por columna: filter[column_name]=value

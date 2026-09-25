@@ -405,7 +405,7 @@ export function ObrasTable() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search-obras"
-                  placeholder="Buscar por código o título..."
+                  placeholder="Buscar por código, título, ISWC, autor o intérprete..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-64 pl-9 h-9 text-sm"
