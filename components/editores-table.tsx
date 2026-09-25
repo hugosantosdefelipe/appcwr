@@ -35,6 +35,7 @@ import {
   Loader2,
   FileText,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SolicitudCatalogoDialog } from '@/components/solicitud-catalogo-dialog';
 
 const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
@@ -159,7 +160,9 @@ export function EditoresTable() {
   const [estadoFilter, setEstadoFilter] = useState('all');
   const [savedEditor, setSavedEditor] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [solicitud, setSolicitud] = useState<EditorRow | null>(null);
+  const [solicitud, setSolicitud] = useState<EditorRow[] | null>(null);
+  // La seleccion se guarda por nombre y sobrevive a cambios de pagina
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
 
@@ -356,6 +359,28 @@ export function EditoresTable() {
             </Button>
           </div>
 
+          {seleccion.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-primary/50 bg-primary/5 px-3 py-2 text-sm">
+              <span className="font-medium">
+                {seleccion.size} editor{seleccion.size === 1 ? '' : 'es'} seleccionado
+                {seleccion.size === 1 ? '' : 's'}
+              </span>
+              <Button
+                size="sm"
+                onClick={() =>
+                  setSolicitud(editores.filter((r) => seleccion.has(r.editor)))
+                }
+                disabled={!editores.some((r) => seleccion.has(r.editor))}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Solicitar en una sola carta
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSeleccion(new Set())}>
+                Quitar selección
+              </Button>
+            </div>
+          )}
+
           {refreshMsg && (
             <div className="flex items-center gap-2 rounded-md border border-emerald-500/50 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
               <Check className="h-4 w-4 shrink-0" />
@@ -384,6 +409,23 @@ export function EditoresTable() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={
+                          editores.length > 0 &&
+                          editores.every((r) => seleccion.has(r.editor))
+                        }
+                        onCheckedChange={(v) => {
+                          const s = new Set(seleccion);
+                          for (const r of editores) {
+                            if (v) s.add(r.editor);
+                            else s.delete(r.editor);
+                          }
+                          setSeleccion(s);
+                        }}
+                        aria-label="Seleccionar todos de esta página"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold">EDITOR</TableHead>
                     <TableHead className="font-semibold">IPI</TableHead>
                     <TableHead className="text-right font-semibold">OBRAS</TableHead>
@@ -399,6 +441,18 @@ export function EditoresTable() {
                 <TableBody>
                   {editores.map((row) => (
                     <TableRow key={row.editor} className="hover:bg-muted/30">
+                      <TableCell>
+                        <Checkbox
+                          checked={seleccion.has(row.editor)}
+                          onCheckedChange={(v) => {
+                            const s = new Set(seleccion);
+                            if (v) s.add(row.editor);
+                            else s.delete(row.editor);
+                            setSeleccion(s);
+                          }}
+                          aria-label={`Seleccionar ${row.editor}`}
+                        />
+                      </TableCell>
                       <TableCell className="max-w-[320px] font-medium">
                         <div className="flex items-center gap-2">
                           <span className="truncate" title={row.editor}>
@@ -496,7 +550,7 @@ export function EditoresTable() {
                           size="icon"
                           aria-label={`Solicitar catálogo de ${row.editor}`}
                           title="Solicitar catálogo a SGAE"
-                          onClick={() => setSolicitud(row)}
+                          onClick={() => setSolicitud([row])}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -564,16 +618,16 @@ export function EditoresTable() {
 
       {solicitud && (
         <SolicitudCatalogoDialog
-          key={solicitud.editor}
-          editor={solicitud.editor}
-          ipi={solicitud.ipi}
-          obras={solicitud.obras}
-          tipoActual={solicitud.tipo_catalogo}
+          key={solicitud.map((e) => e.editor).join('|')}
+          editores={solicitud}
           open={true}
           onOpenChange={(o) => {
             if (!o) setSolicitud(null);
           }}
-          onEnviado={() => mutate()}
+          onEnviado={() => {
+            setSeleccion(new Set());
+            mutate();
+          }}
         />
       )}
     </div>

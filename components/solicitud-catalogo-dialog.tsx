@@ -22,11 +22,15 @@ import { AlertCircle, Check, Download, Loader2, Mail } from 'lucide-react';
 
 type Tipo = 'GENERAL' | 'ESPECIFICO';
 
-interface Props {
+interface EditorSel {
   editor: string;
   ipi: string | null;
   obras: number;
-  tipoActual: string | null;
+  tipo_catalogo: string | null;
+}
+
+interface Props {
+  editores: EditorSel[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Se llama tras un envío correcto, para refrescar la tabla. */
@@ -49,16 +53,21 @@ const MIME_XLSX =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 export function SolicitudCatalogoDialog({
-  editor,
-  ipi,
-  obras,
-  tipoActual,
+  editores,
   open,
   onOpenChange,
   onEnviado,
 }: Props) {
+  const enLote = editores.length > 1;
+  const nombres = editores.map((e) => e.editor);
+  const totalObras = editores.reduce((n, e) => n + e.obras, 0);
+  const sinIpiLista = editores.filter((e) => !e.ipi).map((e) => e.editor);
+  // Si todos comparten tipo se respeta; si no, se arranca en especifico
+  const tiposDistintos = new Set(editores.map((e) => e.tipo_catalogo));
   const [tipo, setTipo] = useState<Tipo>(
-    tipoActual === 'GENERAL' ? 'GENERAL' : 'ESPECIFICO'
+    tiposDistintos.size === 1 && editores[0].tipo_catalogo === 'GENERAL'
+      ? 'GENERAL'
+      : 'ESPECIFICO'
   );
   const [cargando, setCargando] = useState<'enviar' | 'generar' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +83,7 @@ export function SolicitudCatalogoDialog({
       const res = await fetch('/api/editores/solicitud', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ editor, tipo, enviar }),
+        body: JSON.stringify({ editores: nombres, tipo, enviar }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -97,12 +106,14 @@ export function SolicitudCatalogoDialog({
         onEnviado();
       } else {
         descargar(json.pdf.nombre, json.pdf.base64, MIME_PDF);
-        if (json.xlsx) {
-          descargar(json.xlsx.nombre, json.xlsx.base64, MIME_XLSX);
-          setExito(`Descargados la solicitud y ${json.obras} obras.`);
-        } else {
-          setExito('Descargada la solicitud. Un general no lleva listado.');
+        for (const l of json.listados ?? []) {
+          descargar(l.nombre, l.base64, MIME_XLSX);
         }
+        setExito(
+          json.listados?.length
+            ? `Descargada la solicitud y ${json.listados.length} listado(s), ${json.obras} obras.`
+            : 'Descargada la solicitud. Un general no lleva listado.'
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error generando la solicitud');
@@ -111,7 +122,7 @@ export function SolicitudCatalogoDialog({
     }
   };
 
-  const sinIpi = !ipi;
+  const sinIpi = sinIpiLista.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,19 +136,51 @@ export function SolicitudCatalogoDialog({
 
         <div className="space-y-4">
           <div className="bg-muted/40 space-y-1 rounded-md border p-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Editor</span>
-              <span className="text-right font-medium">{editor}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">IPI</span>
-              <span className="font-mono">{ipi ?? '—'}</span>
-            </div>
-            <div className="flex justify-between gap-4">
+            {enLote ? (
+              <>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Editores</span>
+                  <span className="font-medium">{editores.length}</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto pt-1">
+                  {editores.map((e) => (
+                    <div
+                      key={e.editor}
+                      className="flex justify-between gap-4 py-0.5 text-xs"
+                    >
+                      <span className="truncate">{e.editor}</span>
+                      <span className="text-muted-foreground shrink-0 font-mono">
+                        {e.ipi ?? 'sin IPI'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-muted-foreground pt-1 text-xs">
+                  El primero encabeza la carta y todos van en el listado de la
+                  segunda hoja.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Editor</span>
+                  <span className="text-right font-medium">
+                    {editores[0].editor}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">IPI</span>
+                  <span className="font-mono">{editores[0].ipi ?? '—'}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between gap-4 border-t pt-1">
               <span className="text-muted-foreground">Obras que se adjuntan</span>
               <span className="tabular-nums">
                 {tipo === 'ESPECIFICO'
-                  ? obras.toLocaleString('es-ES')
+                  ? `${totalObras.toLocaleString('es-ES')}${
+                      enLote ? ` en ${editores.length} Excel` : ''
+                    }`
                   : 'ninguna, el general las cubre todas'}
               </span>
             </div>
@@ -167,7 +210,9 @@ export function SolicitudCatalogoDialog({
           {sinIpi && (
             <div className="text-destructive border-destructive/50 flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              Este editor no tiene IPI, así que SGAE rechazaría la solicitud.
+              {sinIpiLista.length === 1
+                ? 'Este editor no tiene IPI, así que SGAE rechazaría la solicitud.'
+                : `${sinIpiLista.length} editores no tienen IPI: ${sinIpiLista.join(', ')}. Quítalos de la selección.`}
             </div>
           )}
 
@@ -177,8 +222,11 @@ export function SolicitudCatalogoDialog({
               <div>
                 Se va a enviar un correo a{' '}
                 <span className="font-medium">contratos.internacional@sgae.es</span>, con
-                copia a Yolanda e Iris, y {editor} quedará marcado como pedido. Esto no se
-                puede deshacer.
+                copia a Yolanda e Iris.{' '}
+                {enLote
+                  ? `Los ${editores.length} editores quedarán marcados como pedidos.`
+                  : `${editores[0].editor} quedará marcado como pedido.`}{' '}
+                Esto no se puede deshacer.
               </div>
             </div>
           )}

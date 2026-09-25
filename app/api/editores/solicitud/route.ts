@@ -96,14 +96,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => null);
-    const editor = String(body?.editor ?? '').trim();
+    // Acepta un editor suelto o un lote
+    const editores: string[] = Array.isArray(body?.editores)
+      ? body.editores.map((e: unknown) => String(e ?? '').trim()).filter(Boolean)
+      : [String(body?.editor ?? '').trim()].filter(Boolean);
     const tipo = String(body?.tipo ?? '').toUpperCase() as TipoCatalogo;
     // Sin enviar solo se genera y se descarga, util para revisar antes de mandar
     const enviar = body?.enviar !== false;
 
-    if (!editor) {
+    if (editores.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Falta el editor' },
+        { status: 400 }
+      );
+    }
+    // Cada editor especifico arrastra su Excel de obras, y el servidor de
+    // correo corta en 50 MB, asi que conviene no hacer lotes enormes.
+    if (editores.length > 30) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Son ${editores.length} editores; el máximo por solicitud es 30`,
+        },
         { status: 400 }
       );
     }
@@ -114,20 +128,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const marcas = editores.map(() => '?').join(',');
     const filas = await query<EditorRow[]>(
-      'SELECT editor, ipi, obras, tipo_catalogo FROM editores_sgae WHERE editor = ?',
-      [editor]
+      `SELECT editor, ipi, obras, tipo_catalogo FROM editores_sgae
+       WHERE editor IN (${marcas})`,
+      editores
     );
-    if (filas.length === 0) {
+    const faltan = editores.filter((e) => !filas.some((f) => f.editor === e));
+    if (faltan.length) {
       return NextResponse.json(
-        { success: false, error: `Editor no encontrado: ${editor}` },
+        { success: false, error: `Editor no encontrado: ${faltan.join(', ')}` },
         { status: 404 }
       );
     }
-    const fila = filas[0];
-    if (!fila.ipi) {
+    const sinIpi = filas.filter((f) => !f.ipi).map((f) => f.editor);
+    if (sinIpi.length) {
       return NextResponse.json(
-        { success: false, error: `${editor} no tiene IPI, SGAE lo va a rechazar` },
+        {
+          success: false,
+          error: `Sin IPI, SGAE los rechazaría: ${sinIpi.join(', ')}`,
+        },
         { status: 400 }
       );
     }
@@ -137,37 +157,47 @@ export async function POST(request: NextRequest) {
     const conListado = tipo === 'ESPECIFICO';
 
     const pdf = await generarSolicitudPdf({
-      editor,
-      ipi: fila.ipi,
+      editores: filas.map((f) => ({ editor: f.editor, ipi: f.ipi as string })),
       tipo,
       fecha: hoy,
     });
 
-    let xlsx: Buffer | null = null;
+    // Un Excel de obras por editor, solo en los especificos
+    const listados: { nombre: string; buffer: Buffer; obras: number }[] = [];
     let numObras = 0;
     if (conListado) {
-      const obras = await query<ObraRow[]>(REPERTORIO_SQL, [editor, editor]);
-      const repertorio: ObraRepertorio[] = obras.map((o) => ({
-        Title: String(o.titulo ?? ''),
-        'Composers/Authors': String(o.total_autores ?? ''),
-      }));
-      numObras = repertorio.length;
-      xlsx = generarRepertorioXlsx(repertorio);
+      for (const f of filas) {
+        const obras = await query<ObraRow[]>(REPERTORIO_SQL, [
+          f.editor,
+          f.editor,
+        ]);
+        const repertorio: ObraRepertorio[] = obras.map((o) => ({
+          Title: String(o.titulo ?? ''),
+          'Composers/Authors': String(o.total_autores ?? ''),
+        }));
+        numObras += repertorio.length;
+        listados.push({
+          nombre: nombreRepertorio(f.editor),
+          buffer: generarRepertorioXlsx(repertorio),
+          obras: repertorio.length,
+        });
+      }
     }
 
     const nombrePdf = nombreSolicitudPdf();
-    const nombreXlsx = nombreRepertorio(editor);
 
     if (!enviar) {
       return NextResponse.json({
         success: true,
         enviado: false,
         tipo,
+        editores: filas.map((f) => f.editor),
         obras: numObras,
         pdf: { nombre: nombrePdf, base64: pdf.toString('base64') },
-        xlsx: xlsx
-          ? { nombre: nombreXlsx, base64: xlsx.toString('base64') }
-          : null,
+        listados: listados.map((l) => ({
+          nombre: l.nombre,
+          base64: l.buffer.toString('base64'),
+        })),
       });
     }
 
@@ -244,10 +274,10 @@ export async function POST(request: NextRequest) {
     )
       .split(',')
       .filter(Boolean);
-    const adjuntos = [{ filename: nombrePdf, content: pdf }];
-    if (xlsx) {
-      adjuntos.push({ filename: nombreXlsx, content: xlsx });
-    }
+    const adjuntos = [
+      { filename: nombrePdf, content: pdf },
+      ...listados.map((l) => ({ filename: l.nombre, content: l.buffer })),
+    ];
 
     const mensaje = {
       from: SMTP_USER,
@@ -290,13 +320,13 @@ export async function POST(request: NextRequest) {
       avisoCopia = e instanceof Error ? e.message : String(e);
     }
 
-    // Queda registrado como pedido, con la fecha del envio
+    // Quedan registrados como pedidos, con la fecha del envio
     const fechaSql = hoy.toISOString().slice(0, 10);
     await query(
       `UPDATE editores_sgae
        SET estado = 'Pedido sin numero', tipo_catalogo = ?, fecha_peticion = ?
-       WHERE editor = ?`,
-      [tipo, fechaSql, editor]
+       WHERE editor IN (${marcas})`,
+      [tipo, fechaSql, ...editores]
     );
 
     return NextResponse.json({
@@ -305,6 +335,7 @@ export async function POST(request: NextRequest) {
       destino,
       copia,
       tipo,
+      editores: filas.map((f) => f.editor),
       obras: numObras,
       adjuntos: adjuntos.map((a) => a.filename),
       copiaEnviados,
