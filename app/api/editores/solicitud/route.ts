@@ -4,13 +4,12 @@ import { promises as dns } from 'dns';
 import { guardarEnEnviados } from '@/lib/guardar-enviado';
 import { query } from '@/lib/db';
 import {
-  generarSolicitudDocx,
   generarRepertorioXlsx,
-  nombreSolicitud,
   nombreRepertorio,
   type TipoCatalogo,
   type ObraRepertorio,
 } from '@/lib/solicitud';
+import { generarSolicitudPdf, nombreSolicitudPdf } from '@/lib/solicitud-pdf';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -137,7 +136,7 @@ export async function POST(request: NextRequest) {
     // El listado de obras solo acompana a los catalogos especificos
     const conListado = tipo === 'ESPECIFICO';
 
-    const docx = await generarSolicitudDocx({
+    const pdf = await generarSolicitudPdf({
       editor,
       ipi: fila.ipi,
       tipo,
@@ -156,7 +155,7 @@ export async function POST(request: NextRequest) {
       xlsx = generarRepertorioXlsx(repertorio);
     }
 
-    const nombreDocx = nombreSolicitud();
+    const nombrePdf = nombreSolicitudPdf();
     const nombreXlsx = nombreRepertorio(editor);
 
     if (!enviar) {
@@ -165,7 +164,7 @@ export async function POST(request: NextRequest) {
         enviado: false,
         tipo,
         obras: numObras,
-        docx: { nombre: nombreDocx, base64: docx.toString('base64') },
+        pdf: { nombre: nombrePdf, base64: pdf.toString('base64') },
         xlsx: xlsx
           ? { nombre: nombreXlsx, base64: xlsx.toString('base64') }
           : null,
@@ -237,7 +236,7 @@ export async function POST(request: NextRequest) {
     });
 
     const destino = MAIL_TO || SMTP_USER;
-    const adjuntos = [{ filename: nombreDocx, content: docx }];
+    const adjuntos = [{ filename: nombrePdf, content: pdf }];
     if (xlsx) {
       adjuntos.push({ filename: nombreXlsx, content: xlsx });
     }

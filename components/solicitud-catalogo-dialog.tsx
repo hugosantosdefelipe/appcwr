@@ -44,8 +44,7 @@ function descargar(nombre: string, base64: string, tipoMime: string) {
   URL.revokeObjectURL(url);
 }
 
-const MIME_DOCX =
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const MIME_PDF = 'application/pdf';
 const MIME_XLSX =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -94,7 +93,7 @@ export function SolicitudCatalogoDialog({
         setExito(base + copia);
         onEnviado();
       } else {
-        descargar(json.docx.nombre, json.docx.base64, MIME_DOCX);
+        descargar(json.pdf.nombre, json.pdf.base64, MIME_PDF);
         if (json.xlsx) {
           descargar(json.xlsx.nombre, json.xlsx.base64, MIME_XLSX);
           setExito(`Descargados la solicitud y ${json.obras} obras.`);
