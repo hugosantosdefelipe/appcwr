@@ -4,7 +4,13 @@ import { query } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 
 // Estados de seguimiento del numero de catalogo en SGAE
-const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
+const ESTADOS = [
+  'No pedido',
+  'Pedido sin numero',
+  'Con numero',
+  'Renunciado',
+  'En conflicto',
+] as const;
 type Estado = (typeof ESTADOS)[number];
 
 const SORT_COLUMNS = ['editor', 'ipi', 'obras', 'estado', 'tipo_catalogo', 'peer', 'numero_catalogo', 'fecha_peticion'] as const;

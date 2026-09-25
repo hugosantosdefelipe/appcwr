@@ -38,7 +38,13 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { SolicitudCatalogoDialog } from '@/components/solicitud-catalogo-dialog';
 
-const ESTADOS = ['No pedido', 'Pedido sin numero', 'Con numero', 'Renunciado'] as const;
+const ESTADOS = [
+  'No pedido',
+  'Pedido sin numero',
+  'Con numero',
+  'Renunciado',
+  'En conflicto',
+] as const;
 type Estado = (typeof ESTADOS)[number];
 
 // Etiqueta con acentos para mostrar; el valor guardado va sin acentos (ENUM de la BD)
@@ -47,6 +53,7 @@ const ESTADO_LABELS: Record<Estado, string> = {
   'Pedido sin numero': 'Pedido sin número',
   'Con numero': 'Con número',
   Renunciado: 'Renunciado',
+  'En conflicto': 'En conflicto',
 };
 
 // Color por estado, para leer la tabla de un vistazo
@@ -55,6 +62,7 @@ const ESTADO_STYLES: Record<Estado, string> = {
   'Pedido sin numero': 'text-amber-600 dark:text-amber-400',
   'Con numero': 'text-emerald-600 dark:text-emerald-400',
   Renunciado: 'text-rose-600 dark:text-rose-400',
+  'En conflicto': 'text-orange-600 dark:text-orange-400',
 };
 
 interface EditorRow {
