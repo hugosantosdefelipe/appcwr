@@ -449,8 +449,22 @@ export function EditoresTable() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {row.peer ?? '—'}
+                      <TableCell>
+                        <Select
+                          value={row.peer ?? 'none'}
+                          onValueChange={(v) =>
+                            updateEditor(row.editor, { peer: v === 'none' ? '' : v })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[115px]">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">—</SelectItem>
+                            <SelectItem value="PEER">Peer</SelectItem>
+                            <SelectItem value="NO PEER">No Peer</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <EditableCell

@@ -191,6 +191,18 @@ export async function PATCH(request: NextRequest) {
       params.push(v === '' ? null : v);
     }
 
+    if (body.peer !== undefined) {
+      const v = String(body.peer).trim().toUpperCase();
+      if (v !== '' && v !== 'PEER' && v !== 'NO PEER') {
+        return NextResponse.json(
+          { success: false, error: `peer no valido: ${body.peer}` },
+          { status: 400 }
+        );
+      }
+      sets.push('peer = ?');
+      params.push(v === '' ? null : v);
+    }
+
     if (body.notas !== undefined) {
       const v = String(body.notas).trim();
       sets.push('notas = ?');
