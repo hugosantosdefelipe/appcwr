@@ -63,6 +63,8 @@ export function SolicitudCatalogoDialog({
   const [cargando, setCargando] = useState<'enviar' | 'generar' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
+  // El envio va a SGAE de verdad, asi que se pide confirmacion expresa
+  const [confirmando, setConfirmando] = useState(false);
 
   const lanzar = async (enviar: boolean) => {
     setCargando(enviar ? 'enviar' : 'generar');
@@ -143,7 +145,13 @@ export function SolicitudCatalogoDialog({
 
           <div className="space-y-2">
             <Label htmlFor="tipo-catalogo">Obras incluidas</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
+            <Select
+              value={tipo}
+              onValueChange={(v) => {
+                setTipo(v as Tipo);
+                setConfirmando(false);
+              }}
+            >
               <SelectTrigger id="tipo-catalogo">
                 <SelectValue />
               </SelectTrigger>
@@ -160,6 +168,18 @@ export function SolicitudCatalogoDialog({
             <div className="text-destructive border-destructive/50 flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               Este editor no tiene IPI, así que SGAE rechazaría la solicitud.
+            </div>
+          )}
+
+          {confirmando && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/60 bg-amber-500/5 px-3 py-2 text-sm">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div>
+                Se va a enviar un correo a{' '}
+                <span className="font-medium">contratos.internacional@sgae.es</span>, con
+                copia a Yolanda e Iris, y {editor} quedará marcado como pedido. Esto no se
+                puede deshacer.
+              </div>
             </div>
           )}
 
@@ -191,17 +211,40 @@ export function SolicitudCatalogoDialog({
             )}
             Solo descargar
           </Button>
-          <Button
-            disabled={sinIpi || cargando !== null}
-            onClick={() => lanzar(true)}
-          >
-            {cargando === 'enviar' ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
+          {confirmando ? (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                disabled={cargando !== null}
+                onClick={() => setConfirmando(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={cargando !== null}
+                onClick={() => {
+                  setConfirmando(false);
+                  lanzar(true);
+                }}
+              >
+                {cargando === 'enviar' ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Sí, enviar a SGAE
+              </Button>
+            </div>
+          ) : (
+            <Button
+              disabled={sinIpi || cargando !== null}
+              onClick={() => setConfirmando(true)}
+            >
               <Mail className="mr-2 h-4 w-4" />
-            )}
-            Generar y enviar
-          </Button>
+              Generar y enviar
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
