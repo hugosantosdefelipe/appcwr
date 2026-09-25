@@ -235,14 +235,15 @@ export async function POST(request: NextRequest) {
       greetingTimeout: 20000,
     });
 
-    // Destinatarios reales. MAIL_TO sigue mandando si esta definida, para poder
-    // probar contra una direccion propia sin escribir a la sociedad.
+    // La solicitud va a SGAE con copia a Yolanda e Iris. MAIL_TO y MAIL_CC
+    // permiten desviarlas para probar sin escribir a la sociedad.
     const destino = MAIL_TO || 'contratos.internacional@sgae.es';
-    const copia = MAIL_TO
-      ? []
-      : (limpiar(process.env.MAIL_CC) ||
-          'yolanda@proyectosdeautor.com,iris@proyectosdeautor.com'
-        ).split(',');
+    const copia = (
+      limpiar(process.env.MAIL_CC) ||
+      'yolanda@proyectosdeautor.com,iris@proyectosdeautor.com'
+    )
+      .split(',')
+      .filter(Boolean);
     const adjuntos = [{ filename: nombrePdf, content: pdf }];
     if (xlsx) {
       adjuntos.push({ filename: nombreXlsx, content: xlsx });
